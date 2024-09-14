@@ -3,6 +3,7 @@
 #include <time.h>
 #include <unistd.h>  // For usleep
 #include <string.h>  // For strcmp
+#include <stdbool.h>  // For boolean data type
 
 #define NUM_CARDS 52  // Define a constant for the number of cards in a deck
 
@@ -150,7 +151,7 @@ void play_hand(Card deck[], int *card_index, Card hand[], int *card_count, int *
                 balance -= *bet;  // Decrease player's balance by the bet amount
                 return;
             }
-        } else if (strcmp(choice, "d") == 0 && *bet * 2 <= balance) {
+        } else if (strcmp(choice, "d") == 0 && *bet * 2 <= balance && *card_count == 2 && split_occurred == 0) {
             printf("You are currently betting: %d\n", *bet * 2);
             usleep(1000000);  // Pause for 1 second before continuing
             // call the basic strategy function and store the result in the result_strategy variable
@@ -279,6 +280,7 @@ void play_blackjack() {
                 balance -= bet;  // Decrease player's balance by the bet amount
                 return;
             }
+        // making sure that the player can only double down if they have two cards in their hand, and they have enough balance to double their bet, and no split
         } else if (strcmp(choice, "d") == 0 && bet * 2 <= balance && player_card_count == 2 && split_occurred == 0) {
             printf("Your bet is now: %d\n", bet * 2);
             usleep(1000000);  // Pause for 1 second before continuing
@@ -409,6 +411,8 @@ void basic_strategy_calculation(Card player_hand[], int num_cards, int card_coun
     int num_aces = 0;
     int dealer_upcard_value = dealer_hand[0].value; // Dealer's upcard value
     const char *correct_choice; // Correct choice based on basic strategy
+    bool is_pair = (num_cards == 2 && player_hand[0].value == player_hand[1].value);
+    bool is_soft = player_hand[0].value == 11 || player_hand[1].value == 11;
 
     // checking if the player has a soft hand
     for (int i = 0; i < num_cards; i++) {
@@ -424,7 +428,7 @@ void basic_strategy_calculation(Card player_hand[], int num_cards, int card_coun
     }
 
     // if the player has a soft hand (hand with an Ace), use the basic strategy matrix to determine the correct move against the dealers card
-    if (player_hand[0].value == 11 || player_hand[1].value == 11) { // Check if the player has an Ace in the hand
+    if (is_soft) { // Check if the player has an Ace in the hand
         for (int i = 0; i < sizeof(soft_strategy) / sizeof(soft_strategy[0]); i++) { // Loop through the soft strategy matrix
             if (total_value == soft_strategy[i].player_hand_value) { // Check if the player's hand value matches the strategy row
                 if (dealer_upcard_value == 11) {                    // Check if the dealer's upcard is an Ace
@@ -446,25 +450,8 @@ void basic_strategy_calculation(Card player_hand[], int num_cards, int card_coun
                 }
             }
         }
-    }
-
-    // if the player has a hard hand (hand without an Ace)
-    if (player_hand[0].value != 11 && player_hand[1].value != 11) { // Check if the player does not have an Ace in the hand
-        for (int i = 0; i < sizeof(hard_strategy) / sizeof(hard_strategy[0]); i++) { // Loop through the hard strategy matrix
-            if (total_value == hard_strategy[i].player_hand_value) { // Check if the player's hand value matches the strategy row
-                correct_choice = hard_strategy[i].actions[dealer_upcard_value - 2]; // set the correct choice based on the strategy matrix
-                if (strcmp(choice, correct_choice) == 0) {
-                    sprintf(result_strategy, "\nCorrect choice! When you have a hard %d against a %d, you should %s.\n", total_value, dealer_upcard_value, correct_choice);
-                } else {
-                    sprintf(result_strategy, "\nIncorrect choice. When you have a hard %d against a %d, the correct move is %s.\n", total_value, dealer_upcard_value, correct_choice);
-                }
-                return;
-            }
-        }
-    }
-
-    // if the player has a pair
-    if (player_hand[0].value == player_hand[1].value) { // Check if the player has a pair
+    } // if the player has a pair
+    if (is_pair) { // Check if the player has a pair
         for (int i = 0; i < sizeof(pair_strategy) / sizeof(pair_strategy[0]); i++) { // Loop through the pair strategy matrix
             if (total_value == pair_strategy[i].player_hand_value) { // Check if the player's hand value matches the strategy row
                 correct_choice = pair_strategy[i].actions[dealer_upcard_value - 2]; // set the correct choice based on the strategy matrix
@@ -477,7 +464,24 @@ void basic_strategy_calculation(Card player_hand[], int num_cards, int card_coun
             }
         }
     }
+        // if the player has a hard hand (hand without an Ace)
+    else { // Check if the player does not have an Ace in the hand
+        for (int i = 0; i < sizeof(hard_strategy) / sizeof(hard_strategy[0]); i++) { // Loop through the hard strategy matrix
+            if (total_value == hard_strategy[i].player_hand_value) { // Check if the player's hand value matches the strategy row
+                correct_choice = hard_strategy[i].actions[dealer_upcard_value - 2]; // set the correct choice based on the strategy matrix
+                if (strcmp(choice, correct_choice) == 0) {
+                    sprintf(result_strategy, "\nCorrect choice! When you have a hard %d against a %d, you should %s.\n", total_value, dealer_upcard_value, correct_choice);
+                } else {
+                    sprintf(result_strategy, "\nIncorrect choice. When you have a hard %d against a %d, the correct move is %s.\n", total_value, dealer_upcard_value, correct_choice);
+                }
+                return;
+            }
+        }
+    }
 }
+
+
+
 
 
 
