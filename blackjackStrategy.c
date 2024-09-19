@@ -81,7 +81,7 @@ int calculate_hand_value(Card hand[], int num_cards);
 void print_hand(Card hand[], int num_cards);
 void play_hand(Card deck[], int *card_index, Card hand[], int *card_count, int *bet, int split_occurred);
 void play_blackjack(); // Main Blackjack game function
-void basic_strategy_calculation(Card player_hand[], int num_cards, int card_count, Card dealer_hand[], char choice[], int dealer_total, char *result_strategy);
+void basic_strategy_calculation(Card player_hand[], int num_cards, int card_count, Card dealer_hand[], char choice[], char *result_strategy);
 // Shuffle the deck of cards
 void shuffle_deck(Card deck[]) {
     for (int i = 0; i < NUM_CARDS; i++) {
@@ -127,7 +127,7 @@ void play_hand(Card deck[], int *card_index, Card hand[], int *card_count, int *
     int initial_hand_value = calculate_hand_value(hand, *card_count);
     char result_strategy[200];
 
-    basic_strategy_calculation(hand, *card_count, *card_count, hand, choice, initial_hand_value, result_strategy);
+    basic_strategy_calculation(hand, *card_count, *card_count, hand, choice, result_strategy);
     
     while (1) {
         printf("\nDo you want to hit (h), stand (s), or double (d)? ");
@@ -140,10 +140,10 @@ void play_hand(Card deck[], int *card_index, Card hand[], int *card_count, int *
             print_hand(hand, *card_count);
 
             // Update the player's hand value after adding the new card
-            int updated_hand_value = calculate_hand_value(hand, *card_count);
+            int current_hand_value = calculate_hand_value(hand, *card_count);
 
             // Call the basic strategy function with the updated hand value
-            basic_strategy_calculation(hand, *card_count, *card_count, hand, choice, updated_hand_value, result_strategy);
+            basic_strategy_calculation(hand, *card_count, current_hand_value, hand, choice, result_strategy);
             
 
             if (calculate_hand_value(hand, *card_count) > 21) {
@@ -154,8 +154,11 @@ void play_hand(Card deck[], int *card_index, Card hand[], int *card_count, int *
         } else if (strcmp(choice, "d") == 0 && *bet * 2 <= balance && *card_count == 2 && split_occurred == 0) {
             printf("You are currently betting: %d\n", *bet * 2);
             usleep(1000000);  // Pause for 1 second before continuing
-            // call the basic strategy function and store the result in the result_strategy variable
-            basic_strategy_calculation(hand, *card_count, *card_count, hand, choice, calculate_hand_value(hand, *card_count), result_strategy);
+            
+            // Update the player's hand value after adding the new card
+            int current_hand_value = calculate_hand_value(hand, *card_count);
+            // Call the basic strategy function with the updated hand value
+            basic_strategy_calculation(hand, *card_count, current_hand_value, hand, choice, result_strategy);
             hand[(*card_count)++] = deck[--(*card_index)];
             printf("\nYour hand:\n");
             print_hand(hand, *card_count);
@@ -168,9 +171,12 @@ void play_hand(Card deck[], int *card_index, Card hand[], int *card_count, int *
             }
             *bet *= 2;
             break;
-        } else if (strcmp(choice, "S") == 0) {
-            // call the basic strategy function and store the result in the result_strategy variable
-            basic_strategy_calculation(hand, *card_count, *card_count, hand, choice, calculate_hand_value(hand, *card_count), result_strategy);
+        } else if (strcmp(choice, "s") == 0) {
+            // Update the player's hand value after adding the new card
+            int current_hand_value = calculate_hand_value(hand, *card_count);
+
+            // Call the basic strategy function with the updated hand value
+            basic_strategy_calculation(hand, *card_count, current_hand_value, hand, choice, result_strategy);
             printf("-------------\n%s \n-------------\n", result_strategy);
             break;
         } else {
@@ -267,7 +273,7 @@ void play_blackjack() {
 
         if (strcmp(choice, "h") == 0) {
             // call the basic strategy function and store the result in the result_strategy variable
-            basic_strategy_calculation(player_hand, player_card_count, player_card_count, dealer_hand, choice, calculate_hand_value(player_hand, player_card_count), result_strategy);
+            basic_strategy_calculation(player_hand, player_card_count, player_card_count, dealer_hand, choice, result_strategy);
 
             player_hand[player_card_count++] = deck[--card_index];
             printf("\nYour hand:\n");
@@ -285,8 +291,10 @@ void play_blackjack() {
             printf("Your bet is now: %d\n", bet * 2);
             usleep(1000000);  // Pause for 1 second before continuing
             // call the basic strategy function and store the result in the result_strategy variable
-            basic_strategy_calculation(player_hand, player_card_count, player_card_count, dealer_hand, choice, calculate_hand_value(player_hand, player_card_count), result_strategy);
+            basic_strategy_calculation(player_hand, player_card_count, player_card_count, dealer_hand, choice, result_strategy);
             player_hand[player_card_count++] = deck[--card_index];
+            // print the result of basic strategy
+            printf("-------------\n%s \n-------------\n", result_strategy);
             printf("\nYour hand:\n");
             print_hand(player_hand, player_card_count);
 
@@ -301,14 +309,18 @@ void play_blackjack() {
             bet *= 2;
             break;
         } else if (strcmp(choice, "s") == 0) {
-            basic_strategy_calculation(player_hand, player_card_count, player_card_count, dealer_hand, choice, calculate_hand_value(player_hand, player_card_count), result_strategy);
+            // Calculate the current hand value
+            int current_hand_value = calculate_hand_value(player_hand, player_card_count);
+            // Call the basic strategy function with the current hand value
+            basic_strategy_calculation(player_hand, player_card_count, current_hand_value, dealer_hand, choice, result_strategy);
             printf("-------------\n%s \n-------------\n", result_strategy);
             break;
         } else if (strcmp(choice, "sp") == 0 && player_card_count == 2 && player_hand[0].value == player_hand[1].value && bet * 2 <= balance) {
             printf("You chose to split!\n");
             printf("You are currently betting: %d\n", bet * 2);   
-            // call the basic strategy function and store the result in the result_strategy variable
-            basic_strategy_calculation(player_hand, player_card_count, player_card_count, dealer_hand, choice, calculate_hand_value(player_hand, player_card_count), result_strategy);
+            int current_hand_value = calculate_hand_value(player_hand, player_card_count);
+            // Call the basic strategy function with the current hand value
+            basic_strategy_calculation(player_hand, player_card_count, current_hand_value, dealer_hand, choice, result_strategy);
             split_occurred = 1;
             // Create a second hand for the split
             split_hand[split_card_count++] = player_hand[1];  // Move second card to split hand
@@ -406,7 +418,7 @@ void play_blackjack() {
 
 // Basic strategy calculation function
 
-void basic_strategy_calculation(Card player_hand[], int num_cards, int card_count, Card dealer_hand[], char choice[], int dealer_total, char *result_strategy) {
+void basic_strategy_calculation(Card player_hand[], int num_cards, int card_count, Card dealer_hand[], char choice[], char *result_strategy) {
     int total_value = 0;
     int num_aces = 0;
     int dealer_upcard_value = dealer_hand[0].value; // Dealer's upcard value
@@ -451,7 +463,7 @@ void basic_strategy_calculation(Card player_hand[], int num_cards, int card_coun
             }
         }
     } // if the player has a pair
-    if (is_pair) { // Check if the player has a pair
+    else if (is_pair) { // Check if the player has a pair
         for (int i = 0; i < sizeof(pair_strategy) / sizeof(pair_strategy[0]); i++) { // Loop through the pair strategy matrix
             if (total_value == pair_strategy[i].player_hand_value) { // Check if the player's hand value matches the strategy row
                 correct_choice = pair_strategy[i].actions[dealer_upcard_value - 2]; // set the correct choice based on the strategy matrix
@@ -464,17 +476,33 @@ void basic_strategy_calculation(Card player_hand[], int num_cards, int card_coun
             }
         }
     }
-        // if the player has a hard hand (hand without an Ace)
-    else { // Check if the player does not have an Ace in the hand
-        for (int i = 0; i < sizeof(hard_strategy) / sizeof(hard_strategy[0]); i++) { // Loop through the hard strategy matrix
-            if (total_value == hard_strategy[i].player_hand_value) { // Check if the player's hand value matches the strategy row
-                correct_choice = hard_strategy[i].actions[dealer_upcard_value - 2]; // set the correct choice based on the strategy matrix
+    // if the player has a hard hand (hand without an Ace)
+    else { // For hard hands
+    if (total_value >= 17) {
+        // Use the strategy for 17+
+        for (int i = 0; i < sizeof(hard_strategy) / sizeof(hard_strategy[0]); i++) {
+            if (hard_strategy[i].player_hand_value == 17) {
+                correct_choice = hard_strategy[i].actions[dealer_upcard_value - 2];
                 if (strcmp(choice, correct_choice) == 0) {
                     sprintf(result_strategy, "\nCorrect choice! When you have a hard %d against a %d, you should %s.\n", total_value, dealer_upcard_value, correct_choice);
                 } else {
                     sprintf(result_strategy, "\nIncorrect choice. When you have a hard %d against a %d, the correct move is %s.\n", total_value, dealer_upcard_value, correct_choice);
                 }
                 return;
+            }
+        }
+        } else {
+            // For other hard hand values
+            for (int i = 0; i < sizeof(hard_strategy) / sizeof(hard_strategy[0]); i++) {
+                if (total_value == hard_strategy[i].player_hand_value) {
+                    correct_choice = hard_strategy[i].actions[dealer_upcard_value - 2];
+                    if (strcmp(choice, correct_choice) == 0) {
+                        sprintf(result_strategy, "\nCorrect choice! When you have a hard %d against a %d, you should %s.\n", total_value, dealer_upcard_value, correct_choice);
+                    } else {
+                        sprintf(result_strategy, "\nIncorrect choice. When you have a hard %d against a %d, the correct move is %s.\n", total_value, dealer_upcard_value, correct_choice);
+                    }
+                    return;
+                }
             }
         }
     }
