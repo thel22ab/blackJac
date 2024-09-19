@@ -180,7 +180,13 @@ void play_hand(Card deck[], int *card_index, Card hand[], int *card_count, int *
             printf("-------------\n%s \n-------------\n", result_strategy);
             break;
         } else {
-            printf("Invalid choice! Please enter 'h', 'd', or 's'.\n");
+            // if the player chooses to double down but does not have enough balance give special message
+            if(strcmp(choice, "d") == 0 && balance < *bet * 2) {
+                printf("You don't have enough balance to double down. Please choose another option.\n");
+
+            } else{
+                printf("Invalid choice! Please enter 'h', 'd', or 's'.\n");
+            }
         }
     }
 }
@@ -342,7 +348,22 @@ void play_blackjack() {
         //    balance -= bet;  // Deduct additional bet for the split
             break;
         } else {
-            printf("Invalid choice! Please enter 'h', 'd', 's', or 'sp'.\n");
+
+            if(strcmp(choice, "d") == 0 && balance < bet * 2) {
+                printf("You don't have enough balance to double down. Please choose another option.\n");
+            // if the player tries to split without having two cards of the same rank
+            } else if(strcmp(choice, "sp") == 0 && player_hand[0].value != player_hand[1].value) {
+                printf("You can only split with two cards of the same rank. Please choose another option.\n");
+            // if the player tries to split when having more than 2 cards in their hand
+            } else if(strcmp(choice, "sp") == 0 && player_card_count > 2) {
+                printf("You can only split with two cards in your hand. Please choose another option.\n");
+            // if the player tries to split but doesn't have enough balance
+            } else if(strcmp(choice, "sp") == 0 && bet * 2 > balance) {
+                printf("You don't have enough balance to split. Please choose another option.\n");
+            // if the player does any other illegal move
+            } else{
+                printf("Invalid choice! Please enter 'h', 'd', 's', or 'sp'.\n");
+            }
         }
     }
 
