@@ -6,6 +6,8 @@
 #include <stdbool.h>  // For boolean data type
 
 #define NUM_CARDS 52  // Define a constant for the number of cards in a deck
+#define BALANCE_FILE "balance.txt" // File to store player's balance
+
 
 // Define arrays for card suits and ranks, and their corresponding values in Blackjack
 const char *suits[] = {"Hearts", "Diamonds", "Clubs", "Spades"};
@@ -20,12 +22,12 @@ typedef struct {
 
 // Hard hands (regular hands)
 BasicStrategyRow hard_strategy[] = {
-    { 2,  {"h", "h", "h", "h", "h", "h", "h", "h", "h", "h"} },  // Player hand value 8
-    { 3,  {"h", "h", "h", "h", "h", "h", "h", "h", "h", "h"} },  // Player hand value 8
-    { 4,  {"h", "h", "h", "h", "h", "h", "h", "h", "h", "h"} },  // Player hand value 8
-    { 5,  {"h", "h", "h", "h", "h", "h", "h", "h", "h", "h"} },  // Player hand value 8
-    { 6,  {"h", "h", "h", "h", "h", "h", "h", "h", "h", "h"} },  // Player hand value 8
-    { 7,  {"h", "h", "h", "h", "h", "h", "h", "h", "h", "h"} },  // Player hand value 8
+    { 2,  {"h", "h", "h", "h", "h", "h", "h", "h", "h", "h"} },  // Player hand value 2
+    { 3,  {"h", "h", "h", "h", "h", "h", "h", "h", "h", "h"} },  // Player hand value 3
+    { 4,  {"h", "h", "h", "h", "h", "h", "h", "h", "h", "h"} },  // Player hand value 4
+    { 5,  {"h", "h", "h", "h", "h", "h", "h", "h", "h", "h"} },  // Player hand value 5
+    { 6,  {"h", "h", "h", "h", "h", "h", "h", "h", "h", "h"} },  // Player hand value 6
+    { 7,  {"h", "h", "h", "h", "h", "h", "h", "h", "h", "h"} },  // Player hand value 7
     { 8,  {"h", "h", "h", "h", "h", "h", "h", "h", "h", "h"} },  // Player hand value 8
     { 9,  {"h", "d", "d", "d", "d", "d", "h", "h", "h", "h"} },  // Player hand value 9
     { 10, {"d", "d", "d", "d", "d", "d", "d", "d", "h", "h"} },  // Player hand value 10
@@ -215,10 +217,10 @@ void play_blackjack() {
 
         break;
     }
-
+    // Initialize the deck of cards
     Card deck[NUM_CARDS];
     int card_index = 0;
-
+    // loop through the suits and ranks to create the deck of cards
     for (int i = 0; i < 4; i++) {
         for (int j = 0; j < 13; j++) {
             deck[card_index].rank = ranks[j];
@@ -459,9 +461,26 @@ void basic_strategy_calculation(Card player_hand[], int num_cards, int card_coun
         total_value -= 10;
         num_aces--;
     }
-
-    // if the player has a soft hand (hand with an Ace), use the basic strategy matrix to determine the correct move against the dealers card
-    if (is_soft) { // Check if the player has an Ace in the hand
+    if (is_pair) { // Check if the player has a pair
+        for (int i = 0; i < sizeof(pair_strategy) / sizeof(pair_strategy[0]); i++) { // Loop through the pair strategy matrix
+            if (total_value == pair_strategy[i].player_hand_value) { // Check if the player's hand value matches the strategy row
+                correct_choice = pair_strategy[i].actions[dealer_upcard_value - 2]; // set the correct choice based on the strategy matrix
+                if(is_soft && strcmp(choice, correct_choice) == 0) {
+                   sprintf(result_strategy, "\nCorrect choice! When you have a pair of Aces, you should always %s.\n", correct_choice); 
+                } 
+                else if(is_soft && strcmp(choice, correct_choice) != 0){
+                    sprintf(result_strategy, "\nIncorrect choice. When you have a pair of Aces, you should always %s.\n", correct_choice);
+                }
+                else if (strcmp(choice, correct_choice) == 0) {
+                    sprintf(result_strategy, "\nCorrect choice! When you have a pair of %s against a %d, you should %s.\n", player_hand[0].rank, dealer_upcard_value, correct_choice);
+                } else {
+                    sprintf(result_strategy, "\nIncorrect choice. When you have a pair of %s against a %d, the correct move is %s.\n", player_hand[0].rank, dealer_upcard_value, correct_choice);
+                }
+                return;
+            }
+        }
+    } // if the player has a soft hand (hand with an Ace), use the basic strategy matrix to determine the correct move against the dealers card
+    else if (is_soft) { // Check if the player has an Ace in the hand
         for (int i = 0; i < sizeof(soft_strategy) / sizeof(soft_strategy[0]); i++) { // Loop through the soft strategy matrix
             if (total_value == soft_strategy[i].player_hand_value) { // Check if the player's hand value matches the strategy row
                 if (dealer_upcard_value == 11) {                    // Check if the dealer's upcard is an Ace
@@ -484,19 +503,7 @@ void basic_strategy_calculation(Card player_hand[], int num_cards, int card_coun
             }
         }
     } // if the player has a pair
-    else if (is_pair) { // Check if the player has a pair
-        for (int i = 0; i < sizeof(pair_strategy) / sizeof(pair_strategy[0]); i++) { // Loop through the pair strategy matrix
-            if (total_value == pair_strategy[i].player_hand_value) { // Check if the player's hand value matches the strategy row
-                correct_choice = pair_strategy[i].actions[dealer_upcard_value - 2]; // set the correct choice based on the strategy matrix
-                if (strcmp(choice, correct_choice) == 0) {
-                    sprintf(result_strategy, "\nCorrect choice! When you have a pair of %s against a %d, you should %s.\n", player_hand[0].rank, dealer_upcard_value, correct_choice);
-                } else {
-                    sprintf(result_strategy, "\nIncorrect choice. When you have a pair of %s against a %d, the correct move is %s.\n", player_hand[0].rank, dealer_upcard_value, correct_choice);
-                }
-                return;
-            }
-        }
-    }
+    
     // if the player has a hard hand (hand without an Ace)
     else { // For hard hands
     if (total_value >= 17) {
@@ -537,7 +544,34 @@ void basic_strategy_calculation(Card player_hand[], int num_cards, int card_coun
 
 int main() {
     srand(time(0));
+
     printf("Welcome to Blackjack!\n");
+
+    // Attempt to open the balance file for reading
+    FILE *balance_file = fopen(BALANCE_FILE, "r");
+    if (balance_file != NULL) {
+        // If the file exists, read the balance from it
+        if (fscanf(balance_file, "%d", &balance) != 1) {
+            // If reading fails, set balance to default
+            balance = 500;
+            printf("Error reading balance. Starting with default balance of: %d\n", balance);
+        }
+        fclose(balance_file);
+    } else {
+        // If the file doesn't exist, start with default balance
+        balance = 500;
+        printf("Starting with default balance of: %d\n", balance);
+    }
+
+    // Optionally, ask the user if they want to reset their balance
+    char reset_choice;
+    printf("Do you want to reset your balance to 500? (y/n): ");
+    scanf(" %c", &reset_choice);
+    if (reset_choice == 'y' || reset_choice == 'Y') {
+        balance = 500;
+    }
+
+    
     while (1) {
         play_blackjack();
 
@@ -569,6 +603,13 @@ int main() {
             break;
         }     
     }
-
+        // Before exiting, save the balance to the file
+    balance_file = fopen(BALANCE_FILE, "w");
+    if (balance_file != NULL) {
+        fprintf(balance_file, "%d", balance);
+        fclose(balance_file);
+    } else {
+        printf("Error: Unable to save balance to file.\n");
+    }
     return 0;
 }
