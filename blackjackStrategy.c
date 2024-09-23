@@ -8,7 +8,6 @@
 #define NUM_CARDS 52  // Define a constant for the number of cards in a deck
 #define BALANCE_FILE "balance.txt" // File to store player's balance
 
-
 // Define arrays for card suits and ranks, and their corresponding values in Blackjack
 const char *suits[] = {"Hearts", "Diamonds", "Clubs", "Spades"};
 const char *ranks[] = {"2", "3", "4", "5", "6", "7", "8", "9", "10", "Jack", "Queen", "King", "Ace"};
@@ -66,8 +65,8 @@ BasicStrategyRow pair_strategy[] = {
     { 4,  {"h", "h", "sp", "sp", "sp", "sp", "h", "h", "h", "h"} },  // 2,2 (Split vs dealer 4-7, otherwise hit)
 };
 
-
-
+int amount_plays = 0; // Initialize the amount of total plays to 0
+int amount_of_correct_plays = 0; // Initialize the amount of correct plays to 0
 int balance = 500; // Player's initial balance
 
 // Define a structure to represent a card with rank, suit, and value
@@ -131,66 +130,93 @@ void play_hand(Card deck[], int *card_index, Card hand[], int *card_count, int *
 
     basic_strategy_calculation(hand, *card_count, *card_count, hand, choice, result_strategy);
     
-    while (1) {
+    // if the player splitted with aces, they can only draw one card for each hand and have no choice
+    if (split_occurred == 1 && initial_hand_value == 22) {
+        printf("You have split with Aces. You can only draw one card for each hand.\n");
+        usleep(1000000);  // Pause for 1 second before continuing
         printf("\nDo you want to hit (h), stand (s), or double (d)? ");
-        scanf("%s", choice);
+        // call the basic strategy function and store the result in the result_strategy variable
+        hand[(*card_count)++] = deck[--(*card_index)];
+        printf("\nYour hand:\n");
+        print_hand(hand, *card_count);
+
+        // Update the player's hand value after adding the new card
+        int current_hand_value = calculate_hand_value(hand, *card_count);
+
+        // Call the basic strategy function with the updated hand value
+        basic_strategy_calculation(hand, *card_count, current_hand_value, hand, choice, result_strategy);
         
-        if (strcmp(choice, "h") == 0) {
-            // call the basic strategy function and store the result in the result_strategy variable
-            hand[(*card_count)++] = deck[--(*card_index)];
-            printf("\nYour hand:\n");
-            print_hand(hand, *card_count);
 
-            // Update the player's hand value after adding the new card
-            int current_hand_value = calculate_hand_value(hand, *card_count);
-
-            // Call the basic strategy function with the updated hand value
-            basic_strategy_calculation(hand, *card_count, current_hand_value, hand, choice, result_strategy);
+        if (calculate_hand_value(hand, *card_count) > 21) {
+            printf("You bust! Dealer wins this hand.\n");
+            balance -= *bet;  // Decrease player's balance by the bet amount
+            return;
+        }
+    // if the player has not splitted with aces, they can choose to hit, stand, or double
+    } else{
+        while (1) {
+            printf("\nDo you want to hit (h), stand (s), or double (d)? ");
+            scanf("%s", choice);
             
+            if (strcmp(choice, "h") == 0) {
+                // call the basic strategy function and store the result in the result_strategy variable
+                hand[(*card_count)++] = deck[--(*card_index)];
+                printf("\nYour hand:\n");
+                print_hand(hand, *card_count);
 
-            if (calculate_hand_value(hand, *card_count) > 21) {
-                printf("You bust! Dealer wins this hand.\n");
-                balance -= *bet;  // Decrease player's balance by the bet amount
-                return;
-            }
-        } else if (strcmp(choice, "d") == 0 && *bet * 2 <= balance && *card_count == 2 && split_occurred == 0) {
-            printf("You are currently betting: %d\n", *bet * 2);
-            usleep(1000000);  // Pause for 1 second before continuing
-            
-            // Update the player's hand value after adding the new card
-            int current_hand_value = calculate_hand_value(hand, *card_count);
-            // Call the basic strategy function with the updated hand value
-            basic_strategy_calculation(hand, *card_count, current_hand_value, hand, choice, result_strategy);
-            hand[(*card_count)++] = deck[--(*card_index)];
-            printf("\nYour hand:\n");
-            print_hand(hand, *card_count);
-            printf("-------------\n%s \n-------------\n", result_strategy);
+                // Update the player's hand value after adding the new card
+                int current_hand_value = calculate_hand_value(hand, *card_count);
 
-            if (calculate_hand_value(hand, *card_count) > 21) {
-                printf("You bust! Dealer wins this hand.\n");
-                balance -= *bet * 2;  // Decrease player's balance by double the bet amount
-                return;
-            }
-            *bet *= 2;
-            break;
-        } else if (strcmp(choice, "s") == 0) {
-            // Update the player's hand value after adding the new card
-            int current_hand_value = calculate_hand_value(hand, *card_count);
+                // Call the basic strategy function with the updated hand value
+                basic_strategy_calculation(hand, *card_count, current_hand_value, hand, choice, result_strategy);
+                
 
-            // Call the basic strategy function with the updated hand value
-            basic_strategy_calculation(hand, *card_count, current_hand_value, hand, choice, result_strategy);
-            printf("-------------\n%s \n-------------\n", result_strategy);
-            break;
-        } else {
-            // if the player chooses to double down but does not have enough balance give special message
-            if(strcmp(choice, "d") == 0 && balance < *bet * 2) {
-                printf("You don't have enough balance to double down. Please choose another option.\n");
+                if (calculate_hand_value(hand, *card_count) > 21) {
+                    printf("You bust! Dealer wins this hand.\n");
+                    balance -= *bet;  // Decrease player's balance by the bet amount
+                    return;
+                }
+            } else if (strcmp(choice, "d") == 0 && *bet * 2 <= balance && *card_count == 2 && split_occurred == 0) {
+                printf("You are currently betting: %d\n", *bet * 2);
+                usleep(1000000);  // Pause for 1 second before continuing
+                
+                // Update the player's hand value after adding the new card
+                int current_hand_value = calculate_hand_value(hand, *card_count);
+                // Call the basic strategy function with the updated hand value
+                basic_strategy_calculation(hand, *card_count, current_hand_value, hand, choice, result_strategy);
+                hand[(*card_count)++] = deck[--(*card_index)];
+                printf("\nYour hand:\n");
+                print_hand(hand, *card_count);
+                printf("-------------\n%s \n-------------\n", result_strategy);
 
-            } else{
-                printf("Invalid choice! Please enter 'h', 'd', or 's'.\n");
+                if (calculate_hand_value(hand, *card_count) > 21) {
+                    printf("You bust! Dealer wins this hand.\n");
+                    balance -= *bet * 2;  // Decrease player's balance by double the bet amount
+                    return;
+                }
+                *bet *= 2;
+                break;
+            } else if (strcmp(choice, "s") == 0) {
+                // Update the player's hand value after adding the new card
+                int current_hand_value = calculate_hand_value(hand, *card_count);
+
+                // Call the basic strategy function with the updated hand value
+                basic_strategy_calculation(hand, *card_count, current_hand_value, hand, choice, result_strategy);
+                printf("-------------\n%s \n-------------\n", result_strategy);
+                break;
+            } else {
+                // if the player chooses to double down but does not have enough balance give special message
+                if(strcmp(choice, "d") == 0 && balance < *bet * 2) {
+                    printf("You don't have enough balance to double down. Please choose another option.\n");
+
+                } else{
+                    printf("Invalid choice! Please enter 'h', 'd', or 's'.\n");
+                }
             }
         }
     }
+
+
 }
 
 // Main Blackjack game function
@@ -466,14 +492,21 @@ void basic_strategy_calculation(Card player_hand[], int num_cards, int card_coun
             if (total_value == pair_strategy[i].player_hand_value) { // Check if the player's hand value matches the strategy row
                 correct_choice = pair_strategy[i].actions[dealer_upcard_value - 2]; // set the correct choice based on the strategy matrix
                 if(is_soft && strcmp(choice, correct_choice) == 0) {
-                   sprintf(result_strategy, "\nCorrect choice! When you have a pair of Aces, you should always %s.\n", correct_choice); 
+                    // add to the correct choice file
+                    amount_plays++;
+                    amount_of_correct_plays++;
+                    sprintf(result_strategy, "\nCorrect choice! When you have a pair of Aces, you should always %s.\n", correct_choice); 
                 } 
                 else if(is_soft && strcmp(choice, correct_choice) != 0){
+                    amount_plays++;
                     sprintf(result_strategy, "\nIncorrect choice. When you have a pair of Aces, you should always %s.\n", correct_choice);
                 }
                 else if (strcmp(choice, correct_choice) == 0) {
+                    amount_plays++;
+                    amount_of_correct_plays++;
                     sprintf(result_strategy, "\nCorrect choice! When you have a pair of %s against a %d, you should %s.\n", player_hand[0].rank, dealer_upcard_value, correct_choice);
                 } else {
+                    amount_plays++;
                     sprintf(result_strategy, "\nIncorrect choice. When you have a pair of %s against a %d, the correct move is %s.\n", player_hand[0].rank, dealer_upcard_value, correct_choice);
                 }
                 return;
@@ -486,16 +519,22 @@ void basic_strategy_calculation(Card player_hand[], int num_cards, int card_coun
                 if (dealer_upcard_value == 11) {                    // Check if the dealer's upcard is an Ace
                     correct_choice = soft_strategy[i].actions[9]; // set the correct choice based on the strategy matrix
                     if (strcmp(choice, correct_choice) == 0) {
+                        amount_plays++;
+                        amount_of_correct_plays++;
                         sprintf(result_strategy, "\nCorrect choice! When you have a soft %d against an Ace, you should %s.\n", total_value, correct_choice);
                     } else {
+                        amount_plays++;
                         sprintf(result_strategy, "\nIncorrect choice. When you have a soft %d against an Ace, the correct move is %s.\n", total_value, correct_choice);
                     }
                     return;
                 } else {
                     correct_choice = soft_strategy[i].actions[dealer_upcard_value - 2];
                     if (strcmp(choice, correct_choice) == 0) {
+                        amount_plays++;
+                        amount_of_correct_plays++;
                         sprintf(result_strategy, "\nCorrect choice! When you have a soft %d against a %d, you should %s.\n", total_value, dealer_upcard_value, correct_choice);
                     } else {
+                        amount_plays++;
                         sprintf(result_strategy, "\nIncorrect choice. When you have a soft %d against a %d, the correct move is %s.\n", total_value, dealer_upcard_value, correct_choice);
                     }
                     return;
@@ -512,8 +551,11 @@ void basic_strategy_calculation(Card player_hand[], int num_cards, int card_coun
             if (hard_strategy[i].player_hand_value == 17) {
                 correct_choice = hard_strategy[i].actions[dealer_upcard_value - 2];
                 if (strcmp(choice, correct_choice) == 0) {
+                    amount_plays++;
+                    amount_of_correct_plays++;
                     sprintf(result_strategy, "\nCorrect choice! When you have a hard %d against a %d, you should %s.\n", total_value, dealer_upcard_value, correct_choice);
                 } else {
+                    amount_plays++;
                     sprintf(result_strategy, "\nIncorrect choice. When you have a hard %d against a %d, the correct move is %s.\n", total_value, dealer_upcard_value, correct_choice);
                 }
                 return;
@@ -525,8 +567,11 @@ void basic_strategy_calculation(Card player_hand[], int num_cards, int card_coun
                 if (total_value == hard_strategy[i].player_hand_value) {
                     correct_choice = hard_strategy[i].actions[dealer_upcard_value - 2];
                     if (strcmp(choice, correct_choice) == 0) {
+                        amount_plays++;
+                        amount_of_correct_plays++;
                         sprintf(result_strategy, "\nCorrect choice! When you have a hard %d against a %d, you should %s.\n", total_value, dealer_upcard_value, correct_choice);
                     } else {
+                        amount_plays++;
                         sprintf(result_strategy, "\nIncorrect choice. When you have a hard %d against a %d, the correct move is %s.\n", total_value, dealer_upcard_value, correct_choice);
                     }
                     return;
@@ -570,7 +615,6 @@ int main() {
     if (reset_choice == 'y' || reset_choice == 'Y') {
         balance = 500;
     }
-
     
     while (1) {
         play_blackjack();
@@ -599,6 +643,9 @@ int main() {
         }
 
         if (decision == 'n') {
+            // calculate the percentage of correct plays
+            float percentage_correct = (float)amount_of_correct_plays / amount_plays * 100;
+            printf("You made %d plays and %d of them were correct. That means that %.2f%% of your plays were correct.\n", amount_plays, amount_of_correct_plays, percentage_correct);
             printf("Thanks for playing Blackjack! Goodbye!\n");
             break;
         }     
