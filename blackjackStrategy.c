@@ -145,7 +145,7 @@ void play_hand(Card deck[], int *card_index, Card hand[], int *card_count, int *
 
         // Call the basic strategy function with the updated hand value
         basic_strategy_calculation(hand, *card_count, current_hand_value, hand, choice, result_strategy);
-        
+        printf("-------------\n%s \n-------------\n", result_strategy);
 
         if (calculate_hand_value(hand, *card_count) > 21) {
             printf("You bust! Dealer wins this hand.\n");
@@ -169,7 +169,7 @@ void play_hand(Card deck[], int *card_index, Card hand[], int *card_count, int *
 
                 // Call the basic strategy function with the updated hand value
                 basic_strategy_calculation(hand, *card_count, current_hand_value, hand, choice, result_strategy);
-                
+                printf("-------------\n%s \n-------------\n", result_strategy);
 
                 if (calculate_hand_value(hand, *card_count) > 21) {
                     printf("You bust! Dealer wins this hand.\n");
@@ -355,6 +355,7 @@ void play_blackjack() {
             int current_hand_value = calculate_hand_value(player_hand, player_card_count);
             // Call the basic strategy function with the current hand value
             basic_strategy_calculation(player_hand, player_card_count, current_hand_value, dealer_hand, choice, result_strategy);
+            printf("-------------\n%s \n-------------\n", result_strategy);
             split_occurred = 1;
             // Create a second hand for the split
             split_hand[split_card_count++] = player_hand[1];  // Move second card to split hand
@@ -416,10 +417,18 @@ void play_blackjack() {
 
     printf("\nFinal Results:\n");
 
-    // First hand results
-    if (split_card_count == 0)
-    {
-        if (player_total_first_hand > dealer_total) {
+    // Check if a split occurred
+    if (split_card_count == 0) {   
+        // No split occurred; only one hand to evaluate
+        if(player_total_first_hand > 21) {
+            printf("You bust! Dealer wins.\n");
+            balance -= bet;
+        }
+        else if(dealer_total > 21) {
+            printf("Dealer busts! You win!\n");
+            balance += bet;
+        }
+        else if (player_total_first_hand > dealer_total) {
         printf("You win!\n");
         balance += bet;
         } else if (player_total_first_hand < dealer_total) {
@@ -430,6 +439,8 @@ void play_blackjack() {
         }
         printf("Your hand value: %d\n", player_total_first_hand);
     } else {
+        // Split occurred; evaluate each hand separately
+        // First hand results
         if (player_total_first_hand > dealer_total) {
         printf("First hand: You win!\n");
         balance += bet;
@@ -444,15 +455,20 @@ void play_blackjack() {
     
     printf("Dealer's hand value: %d\n", dealer_total);
 
-    
-
 
     // Second hand results
     if(split_card_count > 0) {
         printf("\nSecond hand value: %d\n", player_total_second_hand);
         printf("Dealer's hand value: %d\n", dealer_total);
 
-        if (player_total_second_hand > dealer_total) {
+        if(player_total_second_hand > 21) {
+            printf("Second hand: You bust! Dealer wins.\n");
+            balance -= bet; // deduct the bet amount, for the second hand
+        } else if(dealer_total > 21) {
+            printf("Second hand: Dealer busts! You win!\n");
+            balance += bet; // add the bet amount, for the second hand
+        }
+        else if (player_total_second_hand > dealer_total) {
             printf("Second hand: You win!\n");
             balance += bet; // add the bet amount, for the second hand
         } else if (player_total_second_hand < dealer_total) {
@@ -621,6 +637,8 @@ int main() {
 
         if (balance == 0) {
             printf("You dirty gambler, go home and think of your decisions\n");
+            float percentage_correct = (float)amount_of_correct_plays / amount_plays * 100;
+            printf("You made %d plays and %d of them were correct. That means that %.2f%% of your plays were correct.\n", amount_plays, amount_of_correct_plays, percentage_correct);
             break;
         } else {
             printf("Your new balance is: %d\n", balance);
