@@ -80,7 +80,7 @@ typedef struct {
 void shuffle_deck(Card deck[]);
 int calculate_hand_value(Card hand[], int num_cards);
 void print_hand(Card hand[], int num_cards);
-void play_hand(Card deck[], int *card_index, Card hand[], int *card_count, int *bet, int split_occurred);
+void play_hand(Card deck[], int *card_index, Card hand[], int *card_count, int *bet, int split_occurred, Card dealer_hand[]);
 void play_blackjack(); // Main Blackjack game function
 void basic_strategy_calculation(Card player_hand[], int num_cards, int card_count, Card dealer_hand[], char choice[], char *result_strategy);
 // Shuffle the deck of cards
@@ -123,12 +123,12 @@ void print_hand(Card hand[], int num_cards) {
 }
 
 // Play a single hand of Blackjack (hit, stand, double)
-void play_hand(Card deck[], int *card_index, Card hand[], int *card_count, int *bet, int split_occurred) {
+void play_hand(Card deck[], int *card_index, Card hand[], int *card_count, int *bet, int split_occurred, Card dealer_hand[]) {
     char choice[5];
     int initial_hand_value = calculate_hand_value(hand, *card_count);
     char result_strategy[200];
 
-    basic_strategy_calculation(hand, *card_count, *card_count, hand, choice, result_strategy);
+    basic_strategy_calculation(hand, *card_count, *card_count, dealer_hand, choice, result_strategy);
     
     // if the player splitted with aces, they can only draw one card for each hand and have no choice
     if (split_occurred == 1 && initial_hand_value == 22) {
@@ -144,7 +144,7 @@ void play_hand(Card deck[], int *card_index, Card hand[], int *card_count, int *
         int current_hand_value = calculate_hand_value(hand, *card_count);
 
         // Call the basic strategy function with the updated hand value
-        basic_strategy_calculation(hand, *card_count, current_hand_value, hand, choice, result_strategy);
+        basic_strategy_calculation(hand, *card_count, current_hand_value, dealer_hand, choice, result_strategy);
         printf("-------------\n%s \n-------------\n", result_strategy);
 
         if (calculate_hand_value(hand, *card_count) > 21) {
@@ -168,7 +168,7 @@ void play_hand(Card deck[], int *card_index, Card hand[], int *card_count, int *
                 int current_hand_value = calculate_hand_value(hand, *card_count);
 
                 // Call the basic strategy function with the updated hand value
-                basic_strategy_calculation(hand, *card_count, current_hand_value, hand, choice, result_strategy);
+                basic_strategy_calculation(hand, *card_count, current_hand_value, dealer_hand, choice, result_strategy);
                 printf("-------------\n%s \n-------------\n", result_strategy);
 
                 if (calculate_hand_value(hand, *card_count) > 21) {
@@ -183,7 +183,7 @@ void play_hand(Card deck[], int *card_index, Card hand[], int *card_count, int *
                 // Update the player's hand value after adding the new card
                 int current_hand_value = calculate_hand_value(hand, *card_count);
                 // Call the basic strategy function with the updated hand value
-                basic_strategy_calculation(hand, *card_count, current_hand_value, hand, choice, result_strategy);
+                basic_strategy_calculation(hand, *card_count, current_hand_value, dealer_hand, choice, result_strategy);
                 hand[(*card_count)++] = deck[--(*card_index)];
                 printf("\nYour hand:\n");
                 print_hand(hand, *card_count);
@@ -201,7 +201,7 @@ void play_hand(Card deck[], int *card_index, Card hand[], int *card_count, int *
                 int current_hand_value = calculate_hand_value(hand, *card_count);
 
                 // Call the basic strategy function with the updated hand value
-                basic_strategy_calculation(hand, *card_count, current_hand_value, hand, choice, result_strategy);
+                basic_strategy_calculation(hand, *card_count, current_hand_value, dealer_hand, choice, result_strategy);
                 printf("-------------\n%s \n-------------\n", result_strategy);
                 break;
             } else {
@@ -366,13 +366,13 @@ void play_blackjack() {
             printf("\nFirst hand:\n");
             player_hand[player_card_count++] = deck[--card_index];  // Deal to the first hand
             print_hand(player_hand, player_card_count);
-            play_hand(deck, &card_index, player_hand, &player_card_count, &bet, split_occurred);  // Play the first hand
+            play_hand(deck, &card_index, player_hand, &player_card_count, &bet, split_occurred, dealer_hand);  // Play the first hand
 
             // Deal a card to the second hand and play it after the first hand is finished
             printf("\nSecond hand:\n");
             split_hand[split_card_count++] = deck[--card_index];  // Deal to the second hand
             print_hand(split_hand, split_card_count);
-            play_hand(deck, &card_index, split_hand, &split_card_count, &bet, split_occurred);  // Play the second hand, passing deck, card_index, split_hand, split_card_count
+            play_hand(deck, &card_index, split_hand, &split_card_count, &bet, split_occurred, dealer_hand);  // Play the second hand, passing deck, card_index, split_hand, split_card_count
 
         //    balance -= bet;  // Deduct additional bet for the split
             break;
@@ -484,25 +484,33 @@ void play_blackjack() {
 // Basic strategy calculation function
 
 void basic_strategy_calculation(Card player_hand[], int num_cards, int card_count, Card dealer_hand[], char choice[], char *result_strategy) {
-    int total_value = 0;
-    int num_aces = 0;
     int dealer_upcard_value = dealer_hand[0].value; // Dealer's upcard value
     const char *correct_choice; // Correct choice based on basic strategy
     bool is_pair = (num_cards == 2 && player_hand[0].value == player_hand[1].value);
-    bool is_soft = player_hand[0].value == 11 || player_hand[1].value == 11;
 
-    // checking if the player has a soft hand
+    int total_value = 0; // Initialize the total value of the player's hand to 0
+    int num_aces = 0; // Initialize the number of Aces in the player's hand to 0
+
+    // Calculate the total value of the player's hand and the number of Aces
     for (int i = 0; i < num_cards; i++) {
-        total_value += player_hand[i].value; // Add the value of the card to the total
-        if (player_hand[i].value == 11) {    // Check if the card is an Ace
-            num_aces++;               // Increment the number of Aces in the hand
+        total_value += player_hand[i].value;
+        if (player_hand[i].value == 11) {
+            num_aces++;
         }
     }
 
-    while (total_value > 21 && num_aces > 0) {
+    // Adjust for Aces by creating a integer variable to store the number of Aces counted as 11
+    // And then loop through the Aces and decrement the total value by 10 for each Ace counted as 11
+    int aces_counted_as_eleven = num_aces;
+    while (total_value > 21 && aces_counted_as_eleven > 0) {
         total_value -= 10;
-        num_aces--;
+        aces_counted_as_eleven--;
     }
+
+    // Determine if hand is soft by checking if the player has an Ace in the hand
+    bool is_soft = (aces_counted_as_eleven > 0);
+    // checking if the player has a soft hand
+
     if (is_pair) { // Check if the player has a pair
         for (int i = 0; i < sizeof(pair_strategy) / sizeof(pair_strategy[0]); i++) { // Loop through the pair strategy matrix
             if (total_value == pair_strategy[i].player_hand_value) { // Check if the player's hand value matches the strategy row
